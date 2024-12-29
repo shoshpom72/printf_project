@@ -393,19 +393,35 @@ void forHex(unsigned int num, int width, int precision, char flags[5], char leng
 
     }
 
+
     // if it's not left aligned
     if (padding > 0 && flags[0] != '-'){
-        // pad with space
-        addPad(padding, ' ', count);
+        // if there's a 0 flag
+        if (flags[3] == '0'){
+            // if the flag is set to #
+            // print a 0x before the 0s
+            if (flags[4] == '#'){
+                putchar('0');
+                putchar('x');
+                *count += 2;
+            }
+            // pad with 0s
+            addPad(padding, '0', count);
+        }
+        else {
+            // pad with space
+            addPad(padding, ' ', count);
+        }
 
     }
 
     // if the flag is set to # print a 0x at the beginning
-    if (flags[4] == '#'){
+    if (flags[4] == '#' && flags[3] != '0'){
         putchar('0');
         putchar('x');
         *count += 2;
     }
+
     // print the precision zeros
     addPad(precisionZeros, '0', count);
 
@@ -489,10 +505,22 @@ int main() {
     printf("%10.7d\n", 832);
     printF("%10.7d\n", 832);
 
-    printf("%#8.5x\n", 1388);
-    printF("%#8.5x\n", 1388);
+    unsigned int num = 255;
+    printf("%x\n", num); // ff
+    printF("%x\n", num); // ff
 
+    printf("%#x\n", num); // 0xff
+    printF("%#x\n", num); // 0xff
 
+    printf("%0#8x\n", num); // 000000ff
+    printF("%0#8x\n", num); // 000000ff
+
+    printf("% 08x\n", num); // ff
+    printF("% 08x\n", num); // ff
+
+    long int bigNum = 123456789;
+    printf("%lx\n", bigNum);
+    printF("%lx\n", bigNum);
 
     return 0;
 
