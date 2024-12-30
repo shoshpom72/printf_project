@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+
 // declare functions
 void formatting(const char **format, char flags[5], int *width, int *precision, char *length, char *specifier);
 void forInt(int num, int width, int precision, char flags[5], char length, int *count);
-void forString(const char str[], int width, int precision, char flags[5], int *count);
-void forHex(unsigned int num, int width, int precision, char flags[5], char length, int *count);
-void addPad(int padding, char padChar, int *count);
+void forHex(unsigned int num, int width, int precision, const char flags[5], char length, int *count);
+void forString(const char str[], int width, int precision, const char flags[5], int *count);
+void forChar(char c, int width, int precision, const char flags[5], int *count);
+void addPad(int padding, char paddingChar, int *count);
 
 
 int printF(const char *format, ...){
@@ -20,7 +22,7 @@ int printF(const char *format, ...){
     // var for the width
     int width = 0 ;
     // var for the precision
-    int precision = 0;
+    int precision = -1;
     //var for the length modifier
     char length = '\0';
     //var for the specifier
@@ -72,9 +74,13 @@ int printF(const char *format, ...){
 
                 case 'x':
                     forHex((unsigned int)va_arg(args,  int), width, precision, flags, length, &count);
+                    break;
 
 
-
+                case 'c':
+                    // cast to const char because chars get promoted to ints in va_arg
+                    forChar((const char)va_arg(args, int), width, precision, flags, &count);
+                    break;
 
             }
         }
@@ -108,7 +114,7 @@ void formatting(const char **format, char flags[5],  int *width, int *precision,
         flags[i] = '\0';
     }
     *width = 0;
-    *precision = 0;
+    *precision = -1;
     *length = '\0';
     *specifier = '\0';
 
@@ -153,6 +159,8 @@ void formatting(const char **format, char flags[5],  int *width, int *precision,
     if (*p == '.') {
         // skip the . and get the number after it
         p++;
+        //initialize precision to 0
+        *precision = 0;
         // while p is a number
         while (*p >= '0' && *p <= '9') {
             // same logic as the width number
@@ -163,7 +171,7 @@ void formatting(const char **format, char flags[5],  int *width, int *precision,
         }
     }
 
-    // while *p is hh, h, l , or ll
+    //  *p is h or l
     if (*p == 'h' || *p == 'l') {
         // set length to the length modifier
         *length = *p;
@@ -198,9 +206,11 @@ void forInt(int num, int width, int precision, char flags[5], char length, int *
     if (num < 0) {
         // set isNeg to 1
         isNeg = 1;
-        // make num pos
+        // negate num to be pos
         num = -num;
+
     }
+
 
 
     // place to store the numbers before they can be printed
@@ -235,8 +245,11 @@ void forInt(int num, int width, int precision, char flags[5], char length, int *
     // figure out how much padding you need
 
     // if precision is not specified treat as no precision
-    if (precision == 0) {
+    if (precision == -1) {
         precision = lenNum;
+    }
+    else if (precision > 0 && flags[3] == '0'){
+        flags[3] = '\0';
     }
 
     // if the precision is greater than the len of num, then it needs to be filled in with 0s
@@ -260,10 +273,9 @@ void forInt(int num, int width, int precision, char flags[5], char length, int *
     }
     // if padding is necessary and it's not left-aligned
     if (padding > 0 && flags[0] != '-') {
-        // the zero gets overwritten by the ' ' and "+" flags
-        // so make sure those flags aren't present
+
         if (flags[2] == ' ') {
-            // print spaces
+            // print a space
             putchar(' ');
             // increment the char counter
             *count += 1;
@@ -280,13 +292,13 @@ void forInt(int num, int width, int precision, char flags[5], char length, int *
                 // reset isNeg so it doesn't print another -
                 isNeg = 0;
             }
+
+
             // print 0 padding
             addPad(padding, '0', count);
         }
-
-
-
-            // if there's space padding, and it's not left-aligned, handle it before the signs
+        // if there's space padding,
+        // and it's not left-aligned, handle it before the signs
         else {
             //print space padding
             addPad(padding, ' ', count);
@@ -302,11 +314,12 @@ void forInt(int num, int width, int precision, char flags[5], char length, int *
         *count += 1;
     }
     // then check if there's a ' ' flag and it's positive
-    else if (flags[2] == ' ' && !isNeg) {
+    else if (flags[2] == ' ' && !isNeg && flags[3] != '0') {
         // print a space
         putchar(' ');
         // increment the char counter
         *count += 1;
+
     }
 
     // if num is negative
@@ -319,6 +332,11 @@ void forInt(int num, int width, int precision, char flags[5], char length, int *
     }
     // pad with zeros
     addPad(precisionZeros, '0',  count);
+
+    if (flags[2] == ' ' && flags[3] == '0'){
+        putchar('0');
+        *count += 1;
+    }
 
     // while there are numbers to print
     while (i--){
@@ -335,7 +353,7 @@ void forInt(int num, int width, int precision, char flags[5], char length, int *
     }
 
 }
-void forHex(unsigned int num, int width, int precision, char flags[5], char length, int *count) {
+void forHex(unsigned int num, int width, int precision, const char flags[5], char length, int *count) {
 
     // similar strategy to int but to got from int to hex
     // one at a time take the whole num and %16 each time
@@ -356,19 +374,20 @@ void forHex(unsigned int num, int width, int precision, char flags[5], char leng
     int i = 0;
 
     if (num == 0){
-        hexString[i++] = 0;
+        hexString[i++] = '0';
         lenHex = 1;
 
     }
     else{
+        unsigned int temp = num;
 
-        while (num > 0){
+        while (temp > 0){
             // find the hex val from the right side on using %16
-            int hex = num % 16;
+            unsigned int hex = temp % 16;
             // fill in the hex string with the hex value of that number
             hexString[i++] = hexVal[hex];
             // remove that part of the number
-            num /= 16;
+            temp /= 16;
 
         }
     }
@@ -388,7 +407,7 @@ void forHex(unsigned int num, int width, int precision, char flags[5], char leng
         padding = width - totalWidth;
     }
     // if there's a # flag take away 2 from padding to account for the 0x
-    if (flags[4] == '#'){
+    if (flags[4] == '#' && num != 0){
         padding -= 2;
 
     }
@@ -400,7 +419,7 @@ void forHex(unsigned int num, int width, int precision, char flags[5], char leng
         if (flags[3] == '0'){
             // if the flag is set to #
             // print a 0x before the 0s
-            if (flags[4] == '#'){
+            if (flags[4] == '#' && num != 0){
                 putchar('0');
                 putchar('x');
                 *count += 2;
@@ -416,7 +435,7 @@ void forHex(unsigned int num, int width, int precision, char flags[5], char leng
     }
 
     // if the flag is set to # print a 0x at the beginning
-    if (flags[4] == '#' && flags[3] != '0'){
+    if (flags[4] == '#' && flags[3] != '0' && num != 0){
         putchar('0');
         putchar('x');
         *count += 2;
@@ -437,7 +456,10 @@ void forHex(unsigned int num, int width, int precision, char flags[5], char leng
 
 }
 
-void forString(const char *str, int width, int precision, char flags[5], int *count) {
+void forString(const char *str, int width, int precision, const char flags[5], int *count) {
+    if (str == NULL) {
+        str = "(null)";
+    }
 
     // keep track of padding
     int padding = 0;
@@ -448,11 +470,11 @@ void forString(const char *str, int width, int precision, char flags[5], int *co
     // find the length of the string
 
 
-    // the precision needs to be greater than the str ot to be -1 (default)
+    // the precision needs to be greater than the str or to be -1 (default)
     // to print the whole string
     // if precision is < lenStr then lenStr = precision
     // if precision is -1 that's the default and should also find the full length of str
-    while (str[lenStr] != '\0' && (precision == 0 || lenStr < precision)) {
+    while (str[lenStr] != '\0' && (precision == -1 || lenStr < precision)) {
         // increment the lenStr counter
         lenStr++;
     }
@@ -462,8 +484,16 @@ void forString(const char *str, int width, int precision, char flags[5], int *co
 
     // if it's not left-aligned
     if (padding > 0 && flags[0] != '-') {
-        // print padding spaces
-        addPad(padding, ' ', count);
+        if (flags[3] == '0'){
+            // print padding zeros
+            addPad(padding, '0', count);
+
+        }
+        else{
+            // print padding spaces
+            addPad(padding, ' ', count);
+        }
+
     }
     // print the string
     for (int i = 0; i < lenStr; i++) {
@@ -478,11 +508,39 @@ void forString(const char *str, int width, int precision, char flags[5], int *co
         // print padding spaces
         addPad(padding, ' ', count);
         }
+
+}
+
+void forChar(const char c, int width, int precision, const char flags[5], int *count) {
+
+    // keep track of padding
+    int padding = 0;
+
+    // if the width is greater than the len of a single char
+    if (width > 1){
+        padding = width - 1;
+    }
+    // pad if not left aligned
+    if (padding > 0 && flags[0] != '-'){
+        if (flags[3] == '0'){
+            addPad(padding, '0', count);
+        }
+        else {
+            addPad(padding, ' ', count);
+        }
+
+    }
+    // print c
+    putchar(c);
+
+    // if left aligned pad with spaces after c
+    if (padding > 0 && flags[0] == '-'){
+        addPad(padding, ' ', count);
     }
 
+}
 
-
-
+// function to deal with the padding
 void addPad(int padding, char paddingChar, int *count){
     while (padding--){
         // print the padding char
@@ -495,32 +553,54 @@ void addPad(int padding, char paddingChar, int *count){
 
 
 int main() {
-    int x ;
 
 
-    printf("%7.3d\n", 832);
-    printF("%7.3d\n", 832);
+    printf("%+d\n", 123);
+    printF("%+d\n", 123);
+
+    printf("%+d\n", -123);
+    printF("%+d\n", -123);
+
+    printf("%09d\n", -223);
+    printF("%09d\n", -223);
+
+    printf("%9d\n", -123);
+    printF("%9d\n", -123);
 
 
-    printf("%10.7d\n", 832);
-    printF("%10.7d\n", 832);
+    printf("%-9x\n", 733);
+    printF("%-9x\n", 733);
 
-    unsigned int num = 255;
-    printf("%x\n", num); // ff
-    printF("%x\n", num); // ff
 
-    printf("%#x\n", num); // 0xff
-    printF("%#x\n", num); // 0xff
+    printf("%#9.5x\n", 123);
+    printF("%#9.5x\n", 123);
 
-    printf("%0#8x\n", num); // 000000ff
-    printF("%0#8x\n", num); // 000000ff
+    printf("%-9.5x\n", 123);
+    printF("%-9.5x\n", 123);
 
-    printf("% 08x\n", num); // ff
-    printF("% 08x\n", num); // ff
+    printf("%0#10x\n", 0);
+    printF("%0#10x\n", 0);
 
-    long int bigNum = 123456789;
-    printf("%lx\n", bigNum);
-    printF("%lx\n", bigNum);
+
+    printf("%.3s\n", "hello");
+    printF("%.3s\n", "hello");
+
+    printf("%9.3s\n", "hello");
+    printF("%9.3s\n", "hello");
+
+    printf("%-9.3s\n", "hello");
+    printF("%-9.3s\n", "hello");
+
+
+    printf("%c\n", 68);
+    printF("%c\n", 68);
+
+    printf("%-9c\n", 'A');
+    printF("%-9c\n", 'A');
+
+    printf("%09c\n", 123);
+    printF("%09c\n", 123);
+
 
     return 0;
 
