@@ -8,10 +8,13 @@ void forInt(int num, int width, int precision, char flags[5], char length, int *
 void forHex(unsigned int num, int width, int precision, const char flags[5], char length, int *count);
 void forString(const char str[], int width, int precision, const char flags[5], int *count);
 void forChar(char c, int width, int precision, const char flags[5], int *count);
+void forUpper(const char str[], int width, int precision, const char flags[5], int *count);
+void forLower(const char str[], int width, int precision, const char flags[5], int *count);
 void addPad(int padding, char paddingChar, int *count);
 
 
 int printF(const char *format, ...){
+    char invalid[] = "Error Not A Valid Specifier";
     // list of variable arguments
     va_list args;
     // initialize the arg list with the last non-variable argument of the function
@@ -81,6 +84,30 @@ int printF(const char *format, ...){
                     // cast to const char because chars get promoted to ints in va_arg
                     forChar((const char)va_arg(args, int), width, precision, flags, &count);
                     break;
+
+                case 'U':
+                    forUpper(va_arg(args, const char *), width, precision, flags, &count);
+                    break;
+
+                case 'L':
+                    forLower(va_arg(args, const char *), width, precision, flags, &count);
+                    break;
+
+
+                default:
+
+                    putchar('%');
+                    putchar(*format);
+                    format++;
+                    putchar(' ');
+                    count += 3;
+                    for (int i = 0; invalid[i] != '\0'; i++) {
+                        putchar(invalid[i]);
+                        count++;
+                    }
+
+                    return count;
+
 
             }
         }
@@ -180,7 +207,7 @@ void formatting(const char **format, char flags[5],  int *width, int *precision,
     }
 
     // if *p is a d, x, c, or s
-    if (*p == 'd' || *p == 'x' || *p == 'c' || *p == 's') {
+    if (*p == 'd' || *p == 'x' || *p == 'c' || *p == 's' || *p == 'U' || *p == 'L') {
         // set the specifier to be the specifier char
         *specifier = *p;
         // increment p to the next char
@@ -540,6 +567,73 @@ void forChar(const char c, int width, int precision, const char flags[5], int *c
 
 }
 
+void forUpper(const char *str, int width, int precision, const char *flags, int *count) {
+    int i = 0;
+
+    // find the length of the input string
+    while (str[i] != '\0'){
+        i++;
+    }
+    // make a new string of the same length
+    char newStr[i];
+
+    i = 0;
+
+    // loop through the string
+    while (str[i] != '\0'){
+        // if its a lower case letter
+        if (str[i] >= 'a' && str[i] <= 'z') {
+            // convert it to upper case and put it in the new string
+            newStr[i] = str[i] - ('a' - 'A');
+        }
+        else {
+            // if its already upper just put it in the new string
+            newStr[i] = str[i];
+        }
+        i++;
+    }
+    // end off the string
+    newStr[i] = '\0';
+
+    // call forString with the new upper case string
+    forString(newStr, width, precision, flags, count);
+
+}
+
+void forLower(const char *str, int width, int precision, const char *flags, int *count) {
+    int i = 0;
+
+    // find the length of the input string
+    while (str[i] != '\0'){
+        i++;
+    }
+    // make a new string of the same length
+    char newStr[i];
+
+    i = 0;
+
+    // loop through the string
+    while (str[i] != '\0'){
+        // if its a lower case letter
+        if (str[i] >= 'A' && str[i] <= 'Z') {
+            // convert it to upper case and put it in the new string
+            newStr[i] = str[i] + ('a' - 'A');
+        }
+        else {
+            // if its already upper just put it in the new string
+            newStr[i] = str[i];
+        }
+        i++;
+    }
+    // end off the string
+    newStr[i] = '\0';
+
+    // call forString with the new upper case string
+    forString(newStr, width, precision, flags, count);
+
+}
+
+
 // function to deal with the padding
 void addPad(int padding, char paddingChar, int *count){
     while (padding--){
@@ -550,6 +644,8 @@ void addPad(int padding, char paddingChar, int *count){
     }
 
 }
+
+
 
 
 int main() {
@@ -575,9 +671,6 @@ int main() {
     printf("%#9.5x\n", 123);
     printF("%#9.5x\n", 123);
 
-    printf("%-9.5x\n", 123);
-    printF("%-9.5x\n", 123);
-
     printf("%0#10x\n", 0);
     printF("%0#10x\n", 0);
 
@@ -600,6 +693,13 @@ int main() {
 
     printf("%09c\n", 123);
     printF("%09c\n", 123);
+
+
+    printF("%-6U%U\n", "shosh", "Pom");
+    printF("%-6.3U%.3U\n", "Shosh", "pom");
+
+    printF("%-6L%L\n", "SHOSH", "Pom");
+    printF("%-6.3L%.3L\n", "Shosh", "POM");
 
 
     return 0;
