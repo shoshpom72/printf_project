@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdarg.h>
-
+#include "my_printf.h"
 
 
 // declare functions
-void formatting(const char **format, char flags[5], int *width, int *precision, char *length, char *specifier);
+void formatting(const char **format, char flags[5], int *width, int *precision, char *length, char *specifier, va_list *args);
 void forInt(int num, int width, int precision, char flags[5], char length, int *count);
 void forHex(unsigned int num, int width, int precision, const char flags[5], char length, int *count);
 void forString(const char str[], int width, int precision, const char flags[5], int *count);
@@ -42,21 +42,11 @@ int my_printf(const char *format, ...){
         // if it's the %, it's the start of the format specifier
         if (*format == '%'){
 
-            // if the next char is also a %
-            if (*(format + 1) == '%'){
-                // print a %
-                putchar('%');
-                count++;
-                // skip to after both %s
-                format += 2;
-
-            }
             // move on to the next char
             format++;
 
-
             // go through the format string to break it up
-            formatting(&format, flags, &width, &precision, &length, &specifier);
+            formatting(&format, flags, &width, &precision, &length, &specifier, &args);
 
             // check the specifier
             switch(specifier) {
@@ -100,9 +90,17 @@ int my_printf(const char *format, ...){
                     forLenStr(va_arg(args, const char *), width, precision, flags, &count);
                     break;
 
-//                default:
-//
-//                    return count;
+                default:
+                    putchar('%');
+                    count++;
+                    if (*format != '%'){
+                        putchar(*format);
+                        count++;
+
+                    }
+                    format++;
+
+                    break;
 
 
             }
@@ -128,7 +126,7 @@ int my_printf(const char *format, ...){
 }
 
 
-void formatting(const char **format, char flags[5],  int *width, int *precision, char *length, char *specifier) {
+void formatting(const char **format, char flags[5],  int *width, int *precision, char *length, char *specifier, va_list *args) {
     // p is a pointer to the char that the format string is up to
     const char *p = *format;
 
@@ -168,7 +166,13 @@ void formatting(const char **format, char flags[5],  int *width, int *precision,
         // move the pointer to the next char
         p++;
     }
-
+    // if width is a '*'
+    if (*p == '*') {
+        // get the next argument as int
+        *width = va_arg(*args, int);
+        // move the pointer along
+        p++;
+    }
     // after the flags if *p is a digit, it's the width
     while (*p >= '0' && *p <= '9') {
         // build up the width one digit at a time
@@ -180,10 +184,20 @@ void formatting(const char **format, char flags[5],  int *width, int *precision,
 
     // if *p is a '.' then it has a precision specification
     if (*p == '.') {
+
+
         // skip the . and get the number after it
         p++;
         //initialize precision to 0
         *precision = 0;
+
+        // if precision is a '*'
+        if (*p == '*') {
+            // get the next argument as int
+            *precision = va_arg(*args, int);
+            // move the pointer along
+            p++;
+        }
         // while p is a number
         while (*p >= '0' && *p <= '9') {
             // same logic as the width number
@@ -561,14 +575,9 @@ void forChar(const char c, int width, int precision, const char flags[5], int *c
     }
     // pad if not left aligned
     if (padding > 0 && flags[0] != '-'){
-        if (flags[3] == '0'){
-            addPad(padding, '0', count);
-        }
-        else {
-            addPad(padding, ' ', count);
-        }
-
+        addPad(padding, ' ', count);
     }
+    
     // print c
     putchar(c);
     *count += 1;
@@ -700,69 +709,68 @@ void addPad(int padding, char paddingChar, int *count){
 }
 
 
-
-
-int main() {
-
-
-   printf("%+d\n", 123);
-   my_printf("%+d\n", 123);
-
-   printf("%+d\n", -123);
-   my_printf("%+d\n", -123);
-
-   printf("%09d\n", -223);
-   my_printf("%09d\n", -223);
-
-   printf("%-9x\n", 733);
-   my_printf("%-9x\n", 733);
-
-
-   printf("%#9.5x\n", 123);
-   my_printf("%#9.5x\n", 123);
-
-   printf("%0#10x\n", 0);
-   my_printf("%0#10x\n", 0);
-
-
-   printf("%.3s\n", "hello");
-   my_printf("%.3s\n", "hello");
-
-   printf("%9.3s\n", "hello");
-   my_printf("%9.3s\n", "hello");
-
-   printf("%-9.3s\n", "hello");
-   my_printf("%-9.3s\n", "hello");
-
-
-   printf("%c\n", 68);
-   my_printf("%c\n", 68);
-
-   printf("%-9c\n", 'A');
-   my_printf("%-9c\n", 'A');
-
-     printf("Testing combined flags...\n");
-    printf("Expected: %+010d\n", 123);
-    my_printf("Result  : %+010d\n", 123);
-
-    printf("Expected: %-#10x\n", 0xDEAD);
-    my_printf("Result  : %-#10x\n", 0xDEAD);
-
-
-
-   my_printf("%-6U%U\n", "shosh", "Pom");
-   my_printf("%-6.3U%.3U\n", "Shosh", "pom");
-
-   my_printf("%-6L%L\n", "SHOSH", "Pom");
-   my_printf("%-6.3L%.3L\n", "Shosh", "POM");
-
-
-   my_printf("%S", "This is a test");
-
-
-
-
-   return 0;
-
-
-}
+//
+//
+//int main() {
+//
+//
+//    printf("%+d\n", 123);
+//    my_printf("%+d\n", 123);
+//
+//    printf("%+d\n", -123);
+//    my_printf("%+d\n", -123);
+//
+//    printf("%09d\n", -223);
+//    my_printf("%09d\n", -223);
+//
+//    printf("%9d\n", -9383299284274927953);
+//    my_printf("%9d\n", -9383299284274927953);
+//
+//
+//    printf("%-9x\n", 733);
+//    my_printf("%-9x\n", 733);
+//
+//
+//    printf("%#9.5x\n", 123);
+//    my_printf("%#9.5x\n", 123);
+//
+//    printf("%0#10x\n", 0);
+//    my_printf("%0#10x\n", 0);
+//
+//
+//    printf("%.3s\n", "hello");
+//    my_printf("%.3s\n", "hello");
+//
+//    printf("%9.3s\n", "hello");
+//    my_printf("%9.3s\n", "hello");
+//
+//    printf("%-9.3s\n", "hello");
+//    my_printf("%-9.3s\n", "hello");
+//
+//
+//    printf("%c\n", 68);
+//    my_printf("%c\n", 68);
+//
+//    printf("%-9c\n", 'A');
+//    my_printf("%-9c\n", 'A');
+//
+//    printf("%09c\n", 123);
+//    my_printf("%09c\n", 123);
+//
+//
+//    my_printf("%-6U%U\n", "shosh", "Pom");
+//    my_printf("%-6.3U%.3U\n", "Shosh", "pom");
+//
+//    my_printf("%-6L%L\n", "SHOSH", "Pom");
+//    my_printf("%-6.3L%.3L\n", "Shosh", "POM");
+//
+//
+//    my_printf("%S", "This is a test");
+//
+//
+//
+//
+//    return 0;
+//
+//
+//}
