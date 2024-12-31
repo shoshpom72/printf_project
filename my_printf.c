@@ -2,6 +2,7 @@
 #include <stdarg.h>
 
 
+
 // declare functions
 void formatting(const char **format, char flags[5], int *width, int *precision, char *length, char *specifier);
 void forInt(int num, int width, int precision, char flags[5], char length, int *count);
@@ -15,7 +16,8 @@ void addPad(int padding, char paddingChar, int *count);
 
 
 int my_printf(const char *format, ...){
-    char invalid[] = "Error Not A Valid Specifier";
+
+    char invalid[] = "Error Not Valid";
     // list of variable arguments
     va_list args;
     // initialize the arg list with the last non-variable argument of the function
@@ -98,19 +100,9 @@ int my_printf(const char *format, ...){
                     forLenStr(va_arg(args, const char *), width, precision, flags, &count);
                     break;
 
-                default:
-
-                    putchar('%');
-                    putchar(*format);
-                    format++;
-                    putchar(' ');
-                    count += 3;
-                    for (int i = 0; invalid[i] != '\0'; i++) {
-                        putchar(invalid[i]);
-                        count++;
-                    }
-
-                    return count;
+//                default:
+//
+//                    return count;
 
 
             }
@@ -218,6 +210,7 @@ void formatting(const char **format, char flags[5],  int *width, int *precision,
         p++;
     }
 
+
     // update the format pointer
     *format = p;
 
@@ -232,13 +225,18 @@ void forInt(int num, int width, int precision, char flags[5], char length, int *
     // if precision > length of the num, 0s need to be filled in
     int precisionZeros = 0;
 
+    // to negate the number if its negative
+    // and use unsigned int so there won't be an overflow problem
+    unsigned int abs = num;
+
+
 
     // if num is negative
     if (num < 0) {
         // set isNeg to 1
         isNeg = 1;
         // negate num to be pos
-        num = -num;
+        abs = -num;
 
     }
 
@@ -262,12 +260,12 @@ void forInt(int num, int width, int precision, char flags[5], char length, int *
         lenNum = 1;
     } else {
         // while num still has values to be printed
-        while (num > 0) {
+        while (abs > 0) {
             // fill in numString index i with the last digit of num and change it to a char
             // increment i to the next index
-            numString[i++] = (num % 10) + '0';
+            numString[i++] = (abs % 10) + '0';
             // take the last digit off of num
-            num /= 10;
+            abs /= 10;
         }
 
         // the len of num is the index + 1 because the index starts at 0
@@ -313,15 +311,25 @@ void forInt(int num, int width, int precision, char flags[5], char length, int *
             // decrement padding
             padding--;
         }
-        if (flags[3] == '0' && flags[1] != '+') {
+        if (flags[3] == '0') {
             // if num is neg
             if (isNeg) {
-                // print a - first
+                // print a -
                 putchar('-');
                 // increment the char counter
                 *count += 1;
                 // reset isNeg so it doesn't print another -
                 isNeg = 0;
+                flags[1] = '\0';
+            }
+            else if (!isNeg && flags[1] == '+'){
+                // print a +
+                putchar('+');
+                // increment the char counter
+                *count += 1;
+
+                flags[1] = '\0';
+
             }
 
 
@@ -338,7 +346,7 @@ void forInt(int num, int width, int precision, char flags[5], char length, int *
 
 
 // first check if there's a + flag and it's positive
-    if (flags[1] == '+' && !isNeg) {
+    if (flags[1] == '+' && !isNeg && flags[3] != '0') {
         // print a +
         putchar('+');
         // increment the char counter
@@ -466,7 +474,7 @@ void forHex(unsigned int num, int width, int precision, const char flags[5], cha
     }
 
     // if the flag is set to # print a 0x at the beginning
-    if (flags[4] == '#' && flags[3] != '0' && num != 0){
+    if (flags[4] == '#'  && num != 0){
         putchar('0');
         putchar('x');
         *count += 2;
@@ -697,61 +705,64 @@ void addPad(int padding, char paddingChar, int *count){
 int main() {
 
 
-    printf("%+d\n", 123);
-    my_printf("%+d\n", 123);
+   printf("%+d\n", 123);
+   my_printf("%+d\n", 123);
 
-    printf("%+d\n", -123);
-    my_printf("%+d\n", -123);
+   printf("%+d\n", -123);
+   my_printf("%+d\n", -123);
 
-    printf("%09d\n", -223);
-    my_printf("%09d\n", -223);
+   printf("%09d\n", -223);
+   my_printf("%09d\n", -223);
 
-    printf("%9d\n", -938327953);
-    my_printf("%9d\n", -938327953);
-
-
-    printf("%-9x\n", 733);
-    my_printf("%-9x\n", 733);
+   printf("%-9x\n", 733);
+   my_printf("%-9x\n", 733);
 
 
-    printf("%#9.5x\n", 123);
-    my_printf("%#9.5x\n", 123);
+   printf("%#9.5x\n", 123);
+   my_printf("%#9.5x\n", 123);
 
-    printf("%0#10x\n", 0);
-    my_printf("%0#10x\n", 0);
-
-
-    printf("%.3s\n", "hello");
-    my_printf("%.3s\n", "hello");
-
-    printf("%9.3s\n", "hello");
-    my_printf("%9.3s\n", "hello");
-
-    printf("%-9.3s\n", "hello");
-    my_printf("%-9.3s\n", "hello");
+   printf("%0#10x\n", 0);
+   my_printf("%0#10x\n", 0);
 
 
-    printf("%c\n", 68);
-    my_printf("%c\n", 68);
+   printf("%.3s\n", "hello");
+   my_printf("%.3s\n", "hello");
 
-    printf("%-9c\n", 'A');
-    my_printf("%-9c\n", 'A');
+   printf("%9.3s\n", "hello");
+   my_printf("%9.3s\n", "hello");
 
-    printf("%09c\n", 123);
-    my_printf("%09c\n", 123);
-
-
-    my_printf("%-6U%U\n", "shosh", "Pom");
-    my_printf("%-6.3U%.3U\n", "Shosh", "pom");
-
-    my_printf("%-6L%L\n", "SHOSH", "Pom");
-    my_printf("%-6.3L%.3L\n", "Shosh", "POM");
+   printf("%-9.3s\n", "hello");
+   my_printf("%-9.3s\n", "hello");
 
 
-    my_printf("%S", "This is a test");
+   printf("%c\n", 68);
+   my_printf("%c\n", 68);
+
+   printf("%-9c\n", 'A');
+   my_printf("%-9c\n", 'A');
+
+     printf("Testing combined flags...\n");
+    printf("Expected: %+010d\n", 123);
+    my_printf("Result  : %+010d\n", 123);
+
+    printf("Expected: %-#10x\n", 0xDEAD);
+    my_printf("Result  : %-#10x\n", 0xDEAD);
 
 
-    return 0;
+
+   my_printf("%-6U%U\n", "shosh", "Pom");
+   my_printf("%-6.3U%.3U\n", "Shosh", "pom");
+
+   my_printf("%-6L%L\n", "SHOSH", "Pom");
+   my_printf("%-6.3L%.3L\n", "Shosh", "POM");
+
+
+   my_printf("%S", "This is a test");
+
+
+
+
+   return 0;
 
 
 }
