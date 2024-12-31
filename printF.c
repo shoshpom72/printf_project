@@ -10,10 +10,11 @@ void forString(const char str[], int width, int precision, const char flags[5], 
 void forChar(char c, int width, int precision, const char flags[5], int *count);
 void forUpper(const char str[], int width, int precision, const char flags[5], int *count);
 void forLower(const char str[], int width, int precision, const char flags[5], int *count);
+void forLenStr(const char *str, int width, int precision, const char flags[5], int *count);
 void addPad(int padding, char paddingChar, int *count);
 
 
-int printF(const char *format, ...){
+int my_printf(const char *format, ...){
     char invalid[] = "Error Not A Valid Specifier";
     // list of variable arguments
     va_list args;
@@ -84,15 +85,18 @@ int printF(const char *format, ...){
                     // cast to const char because chars get promoted to ints in va_arg
                     forChar((const char)va_arg(args, int), width, precision, flags, &count);
                     break;
-
+                // upper
                 case 'U':
                     forUpper(va_arg(args, const char *), width, precision, flags, &count);
                     break;
-
+                // lower
                 case 'L':
                     forLower(va_arg(args, const char *), width, precision, flags, &count);
                     break;
-
+                // len of string
+                case 'S':
+                    forLenStr(va_arg(args, const char *), width, precision, flags, &count);
+                    break;
 
                 default:
 
@@ -207,7 +211,7 @@ void formatting(const char **format, char flags[5],  int *width, int *precision,
     }
 
     // if *p is a d, x, c, or s
-    if (*p == 'd' || *p == 'x' || *p == 'c' || *p == 's' || *p == 'U' || *p == 'L') {
+    if (*p == 'd' || *p == 'x' || *p == 'c' || *p == 's' || *p == 'U' || *p == 'L' || *p == 'S') {
         // set the specifier to be the specifier char
         *specifier = *p;
         // increment p to the next char
@@ -559,6 +563,7 @@ void forChar(const char c, int width, int precision, const char flags[5], int *c
     }
     // print c
     putchar(c);
+    *count += 1;
 
     // if left aligned pad with spaces after c
     if (padding > 0 && flags[0] == '-'){
@@ -633,6 +638,47 @@ void forLower(const char *str, int width, int precision, const char *flags, int 
 
 }
 
+void forLenStr(const char *str, int width, int precision, const char flags[5], int *count){
+
+    int len = 0;
+    // place to store the numbers before they can be printed
+    char numString[50];
+
+    int i = 0;
+
+
+    // get the length of the str
+    while (str[len] != '\0'){
+        len++;
+    }
+
+    // if len is 0 just print a 0
+    if (len == 0){
+        putchar('0');
+        *count += 1;
+    }
+    else{
+        // while there are more numbers in len
+        while (len > 0){
+            // add the last digit to the ith position
+            numString[i++] = (len % 10) + '0';
+            // remove it from the end
+            len /= 10;
+        }
+        i--;
+        // while there are still numbers to print
+        while (i >= 0){
+            // print them
+            putchar(numString[i--]);
+            *count += 1;
+        }
+
+    }
+
+
+
+
+}
 
 // function to deal with the padding
 void addPad(int padding, char paddingChar, int *count){
@@ -652,54 +698,57 @@ int main() {
 
 
     printf("%+d\n", 123);
-    printF("%+d\n", 123);
+    my_printf("%+d\n", 123);
 
     printf("%+d\n", -123);
-    printF("%+d\n", -123);
+    my_printf("%+d\n", -123);
 
     printf("%09d\n", -223);
-    printF("%09d\n", -223);
+    my_printf("%09d\n", -223);
 
-    printf("%9d\n", -123);
-    printF("%9d\n", -123);
+    printf("%9d\n", -938327953);
+    my_printf("%9d\n", -938327953);
 
 
     printf("%-9x\n", 733);
-    printF("%-9x\n", 733);
+    my_printf("%-9x\n", 733);
 
 
     printf("%#9.5x\n", 123);
-    printF("%#9.5x\n", 123);
+    my_printf("%#9.5x\n", 123);
 
     printf("%0#10x\n", 0);
-    printF("%0#10x\n", 0);
+    my_printf("%0#10x\n", 0);
 
 
     printf("%.3s\n", "hello");
-    printF("%.3s\n", "hello");
+    my_printf("%.3s\n", "hello");
 
     printf("%9.3s\n", "hello");
-    printF("%9.3s\n", "hello");
+    my_printf("%9.3s\n", "hello");
 
     printf("%-9.3s\n", "hello");
-    printF("%-9.3s\n", "hello");
+    my_printf("%-9.3s\n", "hello");
 
 
     printf("%c\n", 68);
-    printF("%c\n", 68);
+    my_printf("%c\n", 68);
 
     printf("%-9c\n", 'A');
-    printF("%-9c\n", 'A');
+    my_printf("%-9c\n", 'A');
 
     printf("%09c\n", 123);
-    printF("%09c\n", 123);
+    my_printf("%09c\n", 123);
 
 
-    printF("%-6U%U\n", "shosh", "Pom");
-    printF("%-6.3U%.3U\n", "Shosh", "pom");
+    my_printf("%-6U%U\n", "shosh", "Pom");
+    my_printf("%-6.3U%.3U\n", "Shosh", "pom");
 
-    printF("%-6L%L\n", "SHOSH", "Pom");
-    printF("%-6.3L%.3L\n", "Shosh", "POM");
+    my_printf("%-6L%L\n", "SHOSH", "Pom");
+    my_printf("%-6.3L%.3L\n", "Shosh", "POM");
+
+
+    my_printf("%S", "This is a test");
 
 
     return 0;
