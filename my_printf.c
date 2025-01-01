@@ -577,7 +577,7 @@ void forChar(const char c, int width, int precision, const char flags[5], int *c
     if (padding > 0 && flags[0] != '-'){
         addPad(padding, ' ', count);
     }
-    
+
     // print c
     putchar(c);
     *count += 1;
@@ -689,12 +689,7 @@ void forLenStr(const char *str, int width, int precision, const char flags[5], i
             putchar(numString[i--]);
             *count += 1;
         }
-
     }
-
-
-
-
 }
 
 // function to deal with the padding
